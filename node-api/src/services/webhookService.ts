@@ -1,22 +1,20 @@
-// src/services/webhookService.ts
+// src/services/webhookService.ts - ENHANCED
 import axios from 'axios';
-import { Payment } from '../models';
+import { Payment, Merchant } from '../models';
 
 export class WebhookService {
-  /**
-   * Send webhook notification
-   */
   async sendWebhook(merchant: any, payment: Payment, event: string): Promise<void> {
     try {
       if (!merchant.webhookUrl) {
-        return; // No webhook configured
+        console.log(`No webhook URL configured for merchant ${merchant.id}`);
+        return;
       }
 
       const payload = {
         event,
         payment: {
           id: payment.paymentId,
-          amount: payment.amount,
+          amount: payment.amount.toString(),
           currency: payment.currency,
           status: payment.status,
           transactionHash: payment.transactionHash,
@@ -31,46 +29,48 @@ export class WebhookService {
         timestamp: new Date().toISOString(),
       };
 
-      await axios.post(merchant.webhookUrl, payload, {
-        timeout: 10000, // 10 second timeout
+      console.log(`🔄 Sending webhook to ${merchant.webhookUrl} for event ${event}`);
+
+      const response = await axios.post(merchant.webhookUrl, payload, {
+        timeout: 10000,
         headers: {
           'Content-Type': 'application/json',
           'User-Agent': 'Noxify-Payment-Gateway/1.0',
+          'X-Noxify-Signature': this.generateSignature(payload, merchant.apiKey),
         },
       });
 
-      console.log(`✅ Webhook sent for payment ${payment.paymentId}`);
-    } catch (error) {
-      console.error(`❌ Failed to send webhook for payment ${payment.paymentId}:`, error);
-      // In production, you might want to retry or queue failed webhooks
+      console.log(`✅ Webhook sent successfully for payment ${payment.paymentId}`);
+      
+    } catch (error: any) {
+      console.error(`❌ Failed to send webhook for payment ${payment.paymentId}:`, error.message);
+      // In production, implement retry logic with exponential backoff
     }
   }
 
-  /**
-   * Process payment completion
-   */
-  async processPaymentCompletion(paymentId: string, transactionHash: string): Promise<void> {
+  private generateSignature(payload: any, apiKey: string): string {
+    const crypto = require('crypto');
+    return crypto
+      .createHmac('sha256', apiKey)
+      .update(JSON.stringify(payload))
+      .digest('hex');
+  }
+
+  // New: Process different webhook events
+  async processPaymentEvent(paymentId: string, event: string): Promise<void> {
     try {
-      const payment = await Payment.findOne({ where: { paymentId } });
-      if (!payment) {
-        throw new Error(`Payment ${paymentId} not found`);
+      const payment = await Payment.findOne({
+        where: { paymentId },
+        include: [{ model: Merchant, as: 'merchant' }]
+      });
+
+      if (!payment || !payment.merchant) {
+        throw new Error(`Payment or merchant not found for ${paymentId}`);
       }
 
-      // Update payment status
-      payment.status = 'completed';
-      payment.transactionHash = transactionHash;
-      await payment.save();
-
-      // Get merchant details
-      const merchant = await payment.get('merchant');
-
-      // Send webhook
-      if (merchant) {
-        await this.sendWebhook(merchant, payment, 'payment.completed');
-      }
-    } catch (error: any) {
-      console.error('Error processing payment completion:', error);
-      throw new Error(`Failed to process payment: ${error.message}`);
+      await this.sendWebhook(payment.merchant, payment, event);
+    } catch (error) {
+      console.error('Error processing payment event:', error);
     }
   }
 }

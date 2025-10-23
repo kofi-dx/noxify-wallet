@@ -1,12 +1,12 @@
-// src/models/Payment.ts
-import { DataTypes, Model, Optional } from 'sequelize';
+// src/models/Payment.ts - UPDATED
+import { DataTypes, Model, Optional, Association } from 'sequelize';
 import sequelize from '../config/database';
 import Merchant from './Merchant';
 
 interface PaymentAttributes {
   id: string;
   merchantId: string;
-  paymentId: string; // Public facing payment ID
+  paymentId: string;
   amount: number;
   currency: string;
   description: string;
@@ -14,15 +14,14 @@ interface PaymentAttributes {
   customerName: string;
   status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
   blockchain: 'ethereum' | 'polygon';
-  walletAddress: string; // Where to send payment
+  walletAddress: string;
   transactionHash?: string;
-  metadata?: any; // Additional payment data
+  metadata?: any;
   expiresAt: Date;
   createdAt: Date;
   updatedAt: Date;
 }
 
-// Make optional fields properly optional
 interface PaymentCreationAttributes extends Optional<PaymentAttributes, 'id' | 'transactionHash' | 'metadata' | 'createdAt' | 'updatedAt'> {}
 
 class Payment extends Model<PaymentAttributes, PaymentCreationAttributes> implements PaymentAttributes {
@@ -42,6 +41,13 @@ class Payment extends Model<PaymentAttributes, PaymentCreationAttributes> implem
   public expiresAt!: Date;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
+
+  // 🆕 Add association types
+  public readonly merchant?: Merchant;
+
+  public static associations: {
+    merchant: Association<Payment, Merchant>;
+  };
 }
 
 Payment.init({
