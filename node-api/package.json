@@ -1,0 +1,51 @@
+{
+  "name": "noxify-wallet-api",
+  "version": "1.0.0",
+  "description": "Noxify Wallet Backend API",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "nodemon --exec ts-node server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "db:sync": "ts-node src/scripts/sync-database.ts",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "compression": "^1.7.4",
+    "dotenv": "^16.3.1",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "sequelize": "^6.33.0",
+    "pg": "^8.11.3",
+    "pg-hstore": "^2.3.4",
+    "rate-limiter-flexible": "^4.2.2",
+    "redis": "^4.6.7",
+    "web3": "^4.2.0",
+    "ethers": "^6.8.0",
+    "joi": "^17.11.0",
+    "express-validator": "^7.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.5.0",
+    "@types/express": "^4.17.17",
+    "@types/cors": "^2.8.13",
+    "@types/morgan": "^1.9.4",
+    "@types/bcryptjs": "^2.4.4",
+    "@types/jsonwebtoken": "^9.0.3",
+    "@types/compression": "^1.7.2",
+    "typescript": "^5.1.6",
+    "ts-node": "^10.9.1",
+    "nodemon": "^3.0.1",
+    "jest": "^29.6.2",
+    "supertest": "^6.3.3",
+    "@types/jest": "^29.5.5",
+    "eslint": "^8.48.0",
+    "prettier": "^3.0.2"
+  }
+}
