@@ -1,0 +1,9 @@
+# railway.toml
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "cd node-api && npm start"
+
+[build.environment]
+NODE_VERSION = "18"
