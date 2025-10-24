@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { Merchant, Payment, User, Wallet } from '../models';
 
+
 export class MerchantService {
   /**
    * Generate secure API key
@@ -29,7 +30,25 @@ export class MerchantService {
     businessType: 'ecommerce' | 'b2b' | 'both'
   ): Promise<Merchant> {
     try {
+      console.log(`🔄 Registering merchant for user ${userId}`);
+      
+      // 🆕 CHECK IF USER EXISTS
+      const user = await User.findByPk(userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // 🆕 CHECK IF MERCHANT ALREADY EXISTS FOR THIS USER
+      const existingMerchant = await Merchant.findOne({
+        where: { userId, businessEmail }
+      });
+
+      if (existingMerchant) {
+        throw new Error('Merchant already registered with this email');
+      }
+
       const apiKey = this.generateApiKey();
+      console.log(`✅ Generated API key for merchant`);
 
       const merchant = await Merchant.create({
         userId,
@@ -41,9 +60,11 @@ export class MerchantService {
         status: 'pending',
       });
 
+      console.log(`✅ Merchant created with ID: ${merchant.id}`);
       return merchant;
     } catch (error: any) {
-      console.error('Error registering merchant:', error);
+      console.error('❌ Error registering merchant:', error);
+      console.error('Error details:', error.message);
       throw new Error(`Failed to register merchant: ${error.message}`);
     }
   }

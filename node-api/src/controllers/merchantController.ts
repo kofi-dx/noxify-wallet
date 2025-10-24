@@ -5,9 +5,23 @@ import { Payment } from '../models';
 
 export const registerMerchant = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).user.userId;
-    const { businessName, businessEmail, website, businessType } = req.body;
+    console.log('🔄 Merchant registration request received');
+    
+    const userId = (req as any).user?.userId; // 🆕 FIX: Add optional chaining
+    console.log('User ID from token:', userId);
+    
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: 'User not authenticated',
+      });
+      return;
+    }
 
+    const { businessName, businessEmail, website, businessType } = req.body;
+    console.log('Merchant registration data:', { businessName, businessEmail, website, businessType });
+
+    // 🆕 ADD PROPER VALIDATION
     if (!businessName || !businessEmail || !website) {
       res.status(400).json({
         success: false,
@@ -16,6 +30,18 @@ export const registerMerchant = async (req: Request, res: Response): Promise<voi
       return;
     }
 
+    // 🆕 VALIDATE EMAIL FORMAT
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(businessEmail)) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid business email format',
+      });
+      return;
+    }
+
+    console.log(`🔄 Registering merchant for user ${userId}`);
+    
     const merchant = await merchantService.registerMerchant(
       userId,
       businessName,
@@ -23,6 +49,8 @@ export const registerMerchant = async (req: Request, res: Response): Promise<voi
       website,
       businessType || 'ecommerce'
     );
+
+    console.log('✅ Merchant registered successfully:', merchant.id);
 
     res.status(201).json({
       success: true,
@@ -33,12 +61,14 @@ export const registerMerchant = async (req: Request, res: Response): Promise<voi
           businessName: merchant.businessName,
           businessEmail: merchant.businessEmail,
           status: merchant.status,
-          apiKey: merchant.apiKey, // Only returned once
+          apiKey: merchant.apiKey,
         },
       },
     });
   } catch (error: any) {
-    console.error('Register merchant error:', error);
+    console.error('❌ Register merchant error:', error);
+    console.error('Error stack:', error.stack);
+    
     res.status(500).json({
       success: false,
       message: `Failed to register merchant: ${error.message}`,

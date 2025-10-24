@@ -6,7 +6,6 @@ export class WalletService {
   private alchemy: Alchemy;
 
   constructor() {
-    // **FIXED: Use Sepolia instead of Goerli**
     const network = process.env.NODE_ENV === 'production' ? Network.ETH_MAINNET : Network.ETH_SEPOLIA;
     
     const config = {
@@ -23,34 +22,28 @@ export class WalletService {
     try {
       console.log(`🔄 Generating Ethereum wallet for user: ${userId}`);
       
-      // For MVP, we'll generate wallets locally (TESTNET ONLY)
       const wallet = ethers.Wallet.createRandom();
       
       console.log(`✅ Wallet generated: ${wallet.address}`);
       
-      // **FIXED: Only provide required fields, let Sequelize handle the rest**
       const userWallet = await Wallet.create({
         userId: userId,
-        blockchain: 'ethereum' as const, // Use const assertion
+        blockchain: 'ethereum' as const,
         address: wallet.address,
         currency: 'ETH',
         isActive: true,
         isTestnet: true,
-        // No id, createdAt, updatedAt - Sequelize handles these
       });
 
       console.log(`✅ Ethereum wallet saved to database for user ${userId}: ${wallet.address}`);
       console.log(`✅ Wallet record created with ID: ${userWallet.id}`);
 
-      // In development, return private key for testing (NEVER in production)
       return {
         address: wallet.address,
         privateKey: process.env.NODE_ENV === 'development' ? wallet.privateKey : undefined
       };
     } catch (error: any) {
       console.error('❌ Error generating Ethereum wallet:', error);
-      console.error('Error details:', error.message);
-      console.error('Error stack:', error.stack);
       throw new Error(`Failed to generate wallet: ${error.message}`);
     }
   }
@@ -62,14 +55,11 @@ export class WalletService {
     try {
       console.log(`🔄 Fetching balance for address: ${address}`);
       
-      // Validate Ethereum address
       if (!ethers.isAddress(address)) {
         throw new Error('Invalid Ethereum address');
       }
 
       const balance = await this.alchemy.core.getBalance(address);
-      
-      // Convert BigNumber to string before formatting
       const balanceString = balance.toString();
       const formattedBalance = ethers.formatEther(balanceString);
       
@@ -77,37 +67,6 @@ export class WalletService {
       return formattedBalance;
     } catch (error: any) {
       console.error('❌ Error getting wallet balance:', error);
-      console.error('Balance error details:', error.message);
-      
-      // Return 0 instead of throwing for better UX
-      return '0';
-    }
-  }
-
-  /**
-   * Alternative method using direct ethers provider (if Alchemy continues to have issues)
-   */
-  async getWalletBalanceDirect(address: string): Promise<string> {
-    try {
-      console.log(`🔄 Fetching balance directly for address: ${address}`);
-      
-      // Validate Ethereum address
-      if (!ethers.isAddress(address)) {
-        throw new Error('Invalid Ethereum address');
-      }
-
-      // **FIXED: Update to Sepolia RPC URL**
-      const provider = new ethers.JsonRpcProvider(
-        `https://eth-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`
-      );
-
-      const balance = await provider.getBalance(address);
-      const formattedBalance = ethers.formatEther(balance);
-      
-      console.log(`✅ Direct balance for ${address}: ${formattedBalance} ETH`);
-      return formattedBalance;
-    } catch (error: any) {
-      console.error('❌ Error getting direct wallet balance:', error);
       return '0';
     }
   }
@@ -135,4 +94,17 @@ export class WalletService {
   }
 }
 
-export default new WalletService();
+// Create default instance
+const walletService = new WalletService();
+
+// Named exports
+export { walletService };
+
+// Default export
+export default walletService;
+
+// Individual method exports for direct importing
+export const generateEthereumWallet = walletService.generateEthereumWallet.bind(walletService);
+export const getWalletBalance = walletService.getWalletBalance.bind(walletService);
+export const getUserWallets = walletService.getUserWallets.bind(walletService);
+export const isValidEthereumAddress = walletService.isValidEthereumAddress.bind(walletService);
